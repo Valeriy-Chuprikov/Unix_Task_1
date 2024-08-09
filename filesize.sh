@@ -9,41 +9,43 @@ double_dash=0
 
 for arg in "$@"
 do
-	if [[ "${arg:0:1}" = "-" ]]
+
+	if [[ "${arg:0:1}" == "-" ]]
 	then
-  		if [[ "$arg" == "-s" ]]
-  		then
-			s_small=1
+		case "$arg" in
+			-s)
+				s_small=1
+				continue
+				;;
+			
+			-S)
+				s_big=1
+				continue
+				;;
+				
+			--help)
+				echo "this is a help: "
+  				echo "Give the size of given files in paramters"
+  				echo "-s :to add the total at the end"
+  				echo "-S : to show that the total size of the files given in parameters"
+  				echo "--help : for help"
+  				echo "--usage : to show the usage"
+  				exit 0
+				;;
 
-  		elif [[ "$arg" == "-S" ]]
-  		then
-			s_big=1
+			--usage)
+				echo "filesize [--help] [--usage] [-s] [-S] [files...]";
+				exit 0
+				;;
+			--)
+				sep="--"
+				break
+				;;
+		
+		esac
 
-  		elif [[ "$arg" == "--help" ]]
-  		then
-			echo "this is a help: "
-  			echo "Give the size of given files in paramters"
-  			echo "-s :to add the total at the end"
-  			echo "-S : to show that the total size of the files given in parameters"
-  			echo "--help : for help"
-  			echo "--usage to show the usage "
-  			exit 0
-
-  		elif [[ "$arg" == "--usage" ]]
-  		then 
-			echo "this is the usage";
-			exit 0
-
-  		elif [[ "$arg" == "--" ]]
-  		then 
-			sep="--"
-			break
-
-  		else
-  			echo "ERROR" >&2
-   			exit 2
-
-  		fi
+		echo "Error: wrong option '$arg'"
+		exit 2	
 	fi
 done
 
@@ -55,32 +57,26 @@ do
 		continue
 	fi
 
-	if [[ $double_dash == 0 && ( "$arg" == "-s" || "$arg" == "-S" ) ]]
+	if [[ $double_dash -eq 0 && ( "$arg" == "-s" || "$arg" == "-S" ) ]]
   	then continue
 	fi
 
-	if [ -e "$arg" ]
-        then
-		
-    		if ( stat  $sep "$arg" > /dev/null 2>&1 )
-    		then
-      			size=$(stat --format "%s" $sep "$arg")
-      			(( $s_big == 0 )) && echo $size "$arg"
-      			sum=$(($sum+$size))
-    		else
-      			(( $s_big == 0 )) && echo "ERROR"
-      			error_flag=1
-    		fi
+	if [[ -e "$arg" ]]
+	then
+		size=$(stat --format "%s" $sep "$arg")
+		[[ $s_big -eq 0 ]] && echo $size "$arg"
+		sum=$(($sum+$size))
 
-  	else 
-    		echo "ERROR" >&2
-    		error_flag=1
-  	fi
-done
+	else 
+		echo "Error: file '$arg' doesn't exist" >&2
+		error_flag=1
+	fi
 
-if (( $s_small==1 || $s_big==1 ))
+	done
+
+if [[ $s_small -eq 1 || $s_big -eq 1 ]]
 then 
-	  echo total $sum
+	  echo "total $sum"
 fi
 
 [[ $error_flag ]] && exit 1 || exit 0
